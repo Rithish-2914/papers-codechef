@@ -335,7 +335,7 @@ const CatalogueContentInner = ({ subject }: { subject: string | null }) => {
               ) : (
                 <>
                   <Download className="h-3.5 w-3.5" />
-                  Download
+                  Download ({selectedPapers.length})
                   {selectedPapers.length > 0 ? ` (${selectedPapers.length})` : ""}
                 </>
               )}
