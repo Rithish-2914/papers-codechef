@@ -34,6 +34,7 @@ interface FilterState {
   filtersPulled: boolean;
   currentPage: number;
   papersPerPage: number;
+  isDownloading: boolean;
 }
 
 interface FilterActions {
@@ -104,6 +105,7 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({
   const [appliedFilters, setAppliedFilters] = useState<boolean>(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [papersPerPage] = useState(12);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const filtersNotPulled = useCallback(() => {
     setFiltersPulled(false);
@@ -142,49 +144,73 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({
       return;
     }
 
-    const zip = new JSZip();
-    const uniquePapers = Array.from(
-      new Set(selectedPapers.map((paper) => paper._id)),
-    ).map((id) => selectedPapers.find((paper) => paper._id === id)) as IPaper[];
+    if (isDownloading) return;
 
-    await Promise.all(
-       uniquePapers.map(async (paper) => {
+    setIsDownloading(true);
+
+    try {
+      const zip = new JSZip();
+      const uniquePapers = Array.from(
+        new Set(selectedPapers.map((paper) => paper._id)),
+      ).map(
+        (id) => selectedPapers.find((paper) => paper._id === id),
+      ) as IPaper[];
+
+      let failedCount = 0;
+
+      for (const paper of uniquePapers) {
         try {
           const response = await fetch(getSecureUrl(paper.file_url));
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-          }
           const blob = await response.blob();
           const filename = generateFileName(paper);
           zip.file(filename, blob);
-          } catch (err) {
-            console.error(`Failed to fetch ${paper.file_url}`, err);
-          }
-        }),
-    );   
+        } catch (err) {
+          failedCount += 1;
+          console.error(`Failed to fetch ${paper.file_url}`, err);
+        }
+      }
 
-    function getDownloadName(
-      params: ReadonlyURLSearchParams,
-      key: string,
-      fallback = "download",
-    ): string {
-      const value = params.get(key);
-      if (!value) return fallback;
-      return value.split(" [")[0]?.trim() ?? fallback;
+      if (failedCount === uniquePapers.length) {
+        toast.error("Couldn't download the selected papers. Please try again.");
+        return;
+      }
+
+      function getDownloadName(
+        params: ReadonlyURLSearchParams,
+        key: string,
+        fallback = "download",
+      ): string {
+        const value = params.get(key);
+        if (!value) return fallback;
+        return value.split(" [")[0]?.trim() ?? fallback;
+      }
+
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+
+      a.download = getDownloadName(searchParams, "subject");
+
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      if (failedCount > 0) {
+        toast.success(
+          `Downloaded ${uniquePapers.length - failedCount} of ${uniquePapers.length} papers.`,
+        );
+      } else {
+        toast.success("Download started.");
+      }
+    } catch (err) {
+      console.error("Failed to prepare zip", err);
+      toast.error("Something went wrong while preparing your download.");
+    } finally {
+      setIsDownloading(false);
     }
-    const zipBlob = await zip.generateAsync({ type: "blob" });
-    const url = URL.createObjectURL(zipBlob);
-    const a = document.createElement("a");
-    a.href = url;
-
-    a.download = getDownloadName(searchParams, "subject");
-
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    toast.success("Download Initiated");
-  }, [searchParams, selectedPapers]);
+  }, [searchParams, selectedPapers, isDownloading]);
 
   const handleApplyFilters = useCallback(
     (
@@ -256,6 +282,7 @@ export const FilterProvider: React.FC<FilterProviderProps> = ({
     filtersPulled,
     currentPage,
     papersPerPage,
+    isDownloading,
 
     setSelectedExams,
     setSelectedSlots,

@@ -15,10 +15,10 @@ interface BannerProps {
 
 export default function Banner({
   bannerId,
-  bgColor = "#EFEAFF",
-  textColor = "#120B24",
-  iconColor = "#562EE7",
-  accentColor = "#562EE7",
+  bgColor = "#fef3c7",
+  textColor = "#5a3000",
+  iconColor = "#d97706",
+  accentColor = "#78350f",
   message,
   title,
 }: BannerProps) {

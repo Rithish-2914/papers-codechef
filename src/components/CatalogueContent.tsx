@@ -9,7 +9,7 @@ import Card from "./Card";
 import Loader from "./ui/loader";
 import SideBar from "../components/SideBar";
 import Error from "./Error";
-import { Filter } from "lucide-react";
+import { Filter, CheckSquare, Square, Download, Loader2 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "./ui/sheet";
 import { Pin } from "lucide-react";
 import SearchBarChild from "./Searchbar/searchbar-child";
@@ -17,7 +17,6 @@ import Link from "next/link";
 import { useCourses } from "@/context/courseContext";
 import { FilterProvider, useFilters } from "@/context/filterContext";
 import EmptyState from "./ui/EmptyState";
-import SidebarButton from "./SidebarButton";
 import SortComponent from "./ui/sorting";
 
 const CatalogueContentInner = ({ subject }: { subject: string | null }) => {
@@ -45,6 +44,8 @@ const CatalogueContentInner = ({ subject }: { subject: string | null }) => {
     paginatedPapers,
     totalPages,
     selectedPapers,
+    filteredPapers,
+    isDownloading,
     setPapers,
     setFilterOptions,
     setSelectedExams,
@@ -235,28 +236,18 @@ const CatalogueContentInner = ({ subject }: { subject: string | null }) => {
     setAppliedFilters,
   ]);
 
-  const renderGridItems = (paperList: IPaper[]) => {
-    if (paperList.length === 0) return null;
-
-    const items: React.ReactNode[] = [];
-    paperList.forEach((paper) => {
-      items.push(
-        <Card
-          key={paper._id}
-          paper={paper}
-          onSelect={handleSelectPaper}
-          isSelected={selectedPapers.some((p) => p._id === paper._id)}
-        />,
-      );
-    });
-
-    return items;
-  };
-
   // Render loading state until mounted to avoid hydration mismatch
   if (!isMounted) {
     return <Loader />;
   }
+
+  const currentPapersForSelection = appliedFilters ? filteredPapers : papers;
+  const currentPapersCount = currentPapersForSelection.length;
+  const isAllSelected =
+    currentPapersCount > 0 &&
+    currentPapersForSelection.every((paper) =>
+      selectedPapers.some((sp) => sp._id === paper._id),
+    );
 
   return (
     <div className="relative flex min-h-screen justify-center p-0 md:justify-normal">
@@ -316,17 +307,39 @@ const CatalogueContentInner = ({ subject }: { subject: string | null }) => {
               currentSort={sortOption}
             />
 
-            <SidebarButton onClick={handleSelectAll} className="order-2">
-              Select All
-            </SidebarButton>
+            <button
+              type="button"
+              onClick={isAllSelected ? handleDeselectAll : handleSelectAll}
+              disabled={currentPapersCount === 0}
+              className="order-2 flex items-center gap-1.5 rounded-full border-2 border-black px-3 py-1 font-play text-xs font-semibold text-gray-700 transition-colors hover:bg-[#B2B8FF] hover:text-black disabled:cursor-not-allowed disabled:opacity-40 dark:border-white dark:text-white dark:hover:border-[#434dba] dark:hover:bg-[#434dba] dark:hover:text-white"
+            >
+              {isAllSelected ? (
+                <CheckSquare className="h-3.5 w-3.5" />
+              ) : (
+                <Square className="h-3.5 w-3.5" />
+              )}
+              {isAllSelected ? "Deselect All" : "Select All"}
+            </button>
 
-            <SidebarButton onClick={handleDeselectAll} className="order-2">
-              Deselect All
-            </SidebarButton>
-
-            <SidebarButton onClick={handleDownloadSelected} className="order-2">
-              Download Selected
-            </SidebarButton>
+            <Button
+              onClick={handleDownloadSelected}
+              disabled={selectedPapers.length === 0 || isDownloading}
+              size="sm"
+              className="order-2 gap-1.5 rounded-full font-play text-xs font-semibold"
+            >
+              {isDownloading ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Preparing zip…
+                </>
+              ) : (
+                <>
+                  <Download className="h-3.5 w-3.5" />
+                  Download
+                  {selectedPapers.length > 0 ? ` (${selectedPapers.length})` : ""}
+                </>
+              )}
+            </Button>
           </div>
 
           {relatedSubjects.length > 0 && (
@@ -356,14 +369,30 @@ const CatalogueContentInner = ({ subject }: { subject: string | null }) => {
             >
               {appliedFilters ? (
                 paginatedPapers.length > 0 ? (
-                  renderGridItems(paginatedPapers)
+                  paginatedPapers.map((paper: IPaper) => (
+                    <Card
+                      key={paper._id}
+                      paper={paper}
+                      onSelect={handleSelectPaper}
+                      isSelected={selectedPapers.some(
+                        (p) => p._id === paper._id,
+                      )}
+                    />
+                  ))
                 ) : (
                   <div className="col-span-full flex justify-center">
                     <EmptyState />
                   </div>
                 )
               ) : (
-                renderGridItems(paginatedPapers)
+                paginatedPapers.map((paper: IPaper) => (
+                  <Card
+                    key={paper._id}
+                    paper={paper}
+                    onSelect={handleSelectPaper}
+                    isSelected={selectedPapers.some((p) => p._id === paper._id)}
+                  />
+                ))
               )}
             </div>
             {totalPages > 1 && (

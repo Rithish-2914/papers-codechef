@@ -22,58 +22,17 @@ import {
 import { useCourses } from "@/context/courseContext";
 import PinnedModal from "./ui/PinnedModal";
 import RequestModal from "./ui/RequestModal";
-import Announcement from "./ui/announcement/Announcement";
-import { getSubjectEvent, type EventData } from "@/config/events";
+//import CookoffBanner from "./CookoffBanner";
 
 function Navbar() {
   const pathname: string = usePathname() ?? "/";
 
   const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
-  const [isTopBannerDismissed, setIsTopBannerDismissed] = useState<boolean>(false);
   const { courses } = useCourses();
 
   useEffect(() => {
-    try {
-      const storageKey = "announcement:global-top-banner:dismissed";
-      const timestampKey = `${storageKey}:time`;
-      const isDismissed = window.localStorage.getItem(storageKey) === "true";
-      const dismissedAt = window.localStorage.getItem(timestampKey);
-      const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
-
-      if (isDismissed && dismissedAt) {
-        const timePassed = Date.now() - parseInt(dismissedAt, 10);
-        if (timePassed < FORTY_EIGHT_HOURS) {
-          setIsTopBannerDismissed(true);
-        } else {
-          window.localStorage.removeItem(storageKey);
-          window.localStorage.removeItem(timestampKey);
-          setIsTopBannerDismissed(false);
-        }
-      } else if (isDismissed) {
-        setIsTopBannerDismissed(true);
-      } else {
-        setIsTopBannerDismissed(false);
-      }
-    } catch {
-      setIsTopBannerDismissed(false);
-    }
-  }, []);
-
-  const handleDismissTopBanner = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setIsTopBannerDismissed(true);
-    try {
-      const storageKey = "announcement:global-top-banner:dismissed";
-      window.localStorage.setItem(storageKey, "true");
-      window.localStorage.setItem(`${storageKey}:time`, Date.now().toString());
-    } catch {}
-  };
-
-  const [currentEvent, setCurrentEvent] = useState<EventData | null>(null);
-
-  useEffect(() => {
-    setCurrentEvent(getSubjectEvent());
-  }, []);
+    if (pathname !== "/catalogue") return;
+  }, [pathname]);
 
   const renderHomePageButtons = () => (
     <>
@@ -100,24 +59,16 @@ function Navbar() {
 
   return (
     <div className="sticky top-0 z-[50] w-full bg-[#B2B8FF] dark:bg-[#130E1F]">
-      {currentEvent && !isTopBannerDismissed && (
-        <Announcement
-          id={`top-banner-${currentEvent.id}`}
-          variant="banner"
-          title="Registrations are Live at Gravitas!"
-          message={currentEvent.tagline}
-          badge={currentEvent.badge}
-          logoType={currentEvent.logoType}
-          imageUrl={currentEvent.imageUrl}
-          accent={currentEvent.accent}
-          ctaLabel="Register Now"
-          href={currentEvent.registrationUrl}
-          secondaryCtaLabel="Event Details"
-          secondaryHref={currentEvent.landingPageUrl}
-          dismissible={true}
-          onDismiss={handleDismissTopBanner}
-        />
-      )}
+      {/*<Banner
+        bannerId="freshers"
+        bgColor="#fef3c7"
+        textColor="#5a3000"
+        iconColor="#d97706"
+        accentColor="#78350f"
+        title="Attention Freshers!"
+        message="If papers for your subject are not yet available, click on your subject and explore related subjects until papers become available, as these are newly introduced courses."
+      />*/}
+      {/* <CookoffBanner /> */}
 
       <div className="flex items-center justify-between bg-inherit px-4 py-4 md:px-8 md:py-5">
         {}
@@ -160,7 +111,7 @@ function Navbar() {
                     asChild
                     onSelect={(e) => e.preventDefault()}
                   >
-                    <div className="flex w-full items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#1A1823] hover:text-white">
+                    <div className="flex w-full items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-black/[0.06] hover:text-gray-900 dark:hover:bg-[#1A1823] dark:hover:text-white">
                       <PinnedModal />
                     </div>
                   </DropdownMenuItem>
@@ -169,7 +120,7 @@ function Navbar() {
                     asChild
                     onSelect={(e) => e.preventDefault()}
                   >
-                    <div className="flex w-full items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-[#1A1823] hover:text-white">
+                    <div className="flex w-full items-center gap-3 rounded-lg px-3 py-1 transition hover:bg-black/[0.06] hover:text-gray-900 dark:hover:bg-[#1A1823] dark:hover:text-white">
                       <RequestModal />
                     </div>
                   </DropdownMenuItem>

@@ -4,7 +4,6 @@ import { escapeRegExp } from "@/lib/utils/regex";
 import { Course } from "@/db/course";
 import RelatedSubject from "@/db/relatedSubjects";
 import UpcomingSubject from "@/db/upcoming-paper";
-import { checkAndSyncUpcomingSlots } from "@/lib/services/upcoming-sync";
 
 export async function getCourseList(){
 	await connectToDatabase();
@@ -23,7 +22,6 @@ export async function getRelatedSubjects(subject: string) {
 
 export async function getUpcomingSubjects() {
 	await connectToDatabase();
-	await checkAndSyncUpcomingSlots();
   return await UpcomingSubject.find()
     .sort({ _id: 1 })
     .limit(16)
